@@ -1,0 +1,67 @@
+[
+  {
+    "id": "q01",
+    "query": "What is the standard return window for products?",
+    "expected_source": "01_return_policy.md",
+    "answer": "The standard return window for products purchased from Acmera is 30 calendar days from the delivery date. The return window begins on the date the item is marked as delivered by the shipping carrier, not the date of purchase.",
+    "trace_id": "e151b78f-c187-4dd5-ba24-f80dc184bbfc",
+    "hit": true,
+    "mrr": 0.25,
+    "faithfulness": 5,
+    "faithfulness_reason": "The answer accurately states that the standard return window for products purchased from Acmera is 30 calendar days from the delivery date, which is explicitly supported by the context provided.",
+    "correctness": 5,
+    "correctness_reason": "The generated answer fully matches the expected answer by stating the standard return window is 30 calendar days from the delivery date and provides additional relevant information about when the return window begins."
+  },
+  {
+    "id": "q02",
+    "query": "Does Acmera ship internationally?",
+    "expected_source": "03_shipping_policy.md",
+    "answer": "No, Acmera currently does not offer international shipping. Customers outside India can use third-party forwarding services at their own cost and risk.",
+    "trace_id": "fb9fefe2-0283-4fb3-80bd-d2277f3334ea",
+    "hit": true,
+    "mrr": 1.0,
+    "faithfulness": 5,
+    "faithfulness_reason": "The answer accurately states that Acmera does not offer international shipping, which is explicitly supported by the context provided.",
+    "correctness": 5,
+    "correctness_reason": "The generated answer fully matches the expected answer, providing the same information about Acmera's shipping policy and the use of third-party forwarding services."
+  },
+  {
+    "id": "q03",
+    "query": "What warranty comes with Acmera electronics?",
+    "expected_source": "04_warranty_policy.md",
+    "answer": "All electronics sold by Acmera come with a minimum 1-year manufacturer warranty from the date of purchase. This warranty covers defects in materials and workmanship under normal use conditions.",
+    "trace_id": "bbbd9ba7-037a-46a8-9921-267802833c73",
+    "hit": true,
+    "mrr": 1.0,
+    "faithfulness": 5,
+    "faithfulness_reason": "The answer accurately reflects the information provided in the context, stating that all electronics sold by Acmera come with a minimum 1-year manufacturer warranty covering defects in materials and workmanship under normal use conditions.",
+    "correctness": 5,
+    "correctness_reason": "The generated answer fully matches the expected answer, providing the same information about the warranty duration and coverage."
+  },
+  {
+    "id": "q04",
+    "query": "What is the spending threshold for Premium Gold?",
+    "expected_source": "02_premium_membership.md",
+    "answer": "The spending threshold for Premium Gold is \u20b975,000 in a calendar year.",
+    "trace_id": "2fe9fc36-88c7-4ea6-8c10-9ef9d7a6d33a",
+    "hit": true,
+    "mrr": 1.0,
+    "faithfulness": 5,
+    "faithfulness_reason": "The answer is explicitly supported by the context, which states that Premium Gold is granted after spending \u20b975,000 in a calendar year.",
+    "correctness": 3,
+    "correctness_reason": "The generated answer correctly states the spending threshold of \u20b975,000 in a calendar year but omits the additional condition of maintaining Premium Silver for 3+ consecutive years."
+  },
+  {
+    "id": "q05",
+    "query": "What items cannot be returned?",
+    "expected_source": "01_return_policy.md",
+    "answer": "The following items cannot be returned under Acmera's return policy:\n\n1. Opened software and digital downloads.\n2. Gift cards.\n3. Perishable goods.\n4. Personalized items.\n5. Consumable electronics accessories (such as cables, screen protectors, or cases) for opened electronics.\n6. Items marked as \"Final Sale\" during promotional events.\n\nAdditionally, items must be in their original packaging and unused condition to be eligible for standard returns.",
+    "trace_id": "5bff94a2-a9ea-46c4-bab7-7bc9eb9ddba5",
+    "hit": true,
+    "mrr": 1.0,
+    "faithfulness": 5,
+    "faithfulness_reason": "Every claim made in the answer is explicitly supported by the context provided. The items listed as non-returnable, such as opened software, digital downloads, gift cards, perishable goods, personalized items, consumable electronics accessories for opened electronics, and items marked as 'Final Sale' are all mentioned in the context.",
+    "correctness": 3,
+    "correctness_reason": "The generated answer includes additional items that cannot be returned, which were not mentioned in the expected answer. However, it correctly lists the items from the expected answer."
+  }
+]
