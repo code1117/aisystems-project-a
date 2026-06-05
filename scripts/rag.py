@@ -23,7 +23,7 @@ langfuse = Langfuse()
 TOP_K = 5
 GENERATION_MODEL = "gpt-4o-mini"
 
-SYSTEM_PROMPT = """You are a helpful customer support assistant for Acmera, an Indian e-commerce company. 
+SYSTEM_PROMPT = """You are a helpful customer support assistant for Acmera, an Indian e-commerce company.
 Answer the customer's question based on the provided context from our documentation.
 
 Rules:
