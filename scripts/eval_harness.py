@@ -23,6 +23,7 @@ import os
 import sys
 import json
 import argparse
+from collections import defaultdict
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -65,7 +66,7 @@ def check_retrieval_hit(retrieved_chunks, expected_source):
     TODO: Implement in Session 1 homework.
     Hint: iterate retrieved_chunks, check if any chunk["doc_name"] == expected_source
     """
-    pass
+    return any(chunk["doc_name"] == expected_source for chunk in retrieved_chunks)
 
 
 def calculate_mrr(retrieved_chunks, expected_source):
@@ -77,7 +78,15 @@ def calculate_mrr(retrieved_chunks, expected_source):
 
     TODO: Implement in Session 1 homework.
     """
-    pass
+    for rank, chunk in enumerate(retrieved_chunks, start=1):
+        if chunk["doc_name"] == expected_source:
+            return 1.0 / rank
+    return 0.0
+
+
+def parse_judge_json(text):
+    text = text.strip().replace("```json", "").replace("```", "").strip()
+    return json.loads(text)
 
 
 # =========================================================================
@@ -97,7 +106,24 @@ def judge_faithfulness(query, answer, context):
 
     TODO: Implement in Session 1 homework.
     """
-    pass
+    prompt = f"""You are an evaluation judge. Score whether the answer is grounded in the context.
+
+Question: {query}
+Context: {context}
+Answer: {answer}
+
+Score 5: every claim explicitly supported by context
+Score 3: some claims not in context
+Score 1: fabricated information
+
+Return JSON only: {{"score": 1-5, "reason": "explanation"}}"""
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0,
+    )
+    return parse_judge_json(response.choices[0].message.content)
 
 
 def judge_correctness(query, answer, expected_answer):
@@ -108,14 +134,31 @@ def judge_correctness(query, answer, expected_answer):
 
     TODO: Implement in Session 1 homework.
     """
-    pass
+    prompt = f"""You are an evaluation judge. Score whether the answer correctly addresses the question compared to the expected answer.
+
+Question: {query}
+Expected Answer: {expected_answer}
+Generated Answer: {answer}
+
+Score 5: answer fully matches expected answer
+Score 3: partially correct
+Score 1: completely wrong
+
+Return JSON only: {{"score": 1-5, "reason": "explanation"}}"""
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0,
+    )
+    return parse_judge_json(response.choices[0].message.content)
 
 
 # =========================================================================
 # SESSION 1: EVAL RUNNER
 # =========================================================================
 
-def run_eval(include_hard=False):
+def run_eval(include_hard=False, category=None, attach_scores=False):
     """
     Run the full evaluation:
     1. Load golden dataset (+ hard queries if --include-hard)
@@ -127,7 +170,81 @@ def run_eval(include_hard=False):
 
     TODO: Implement in Session 1 homework.
     """
-    pass
+    from rag import ask
+
+    dataset = load_golden_dataset()
+    if not include_hard:
+        dataset = [item for item in dataset if item.get("difficulty") != "hard"]
+    if category:
+        dataset = [item for item in dataset if item.get("category") == category]
+
+    if not dataset:
+        print("No eval entries found for the selected filters.")
+        return None
+
+    results = []
+
+    for item in dataset:
+        print(f"Evaluating {item['id']}: {item['query'][:80]}...")
+        result = ask(item["query"])
+
+        hit = check_retrieval_hit(result["retrieved_chunks"], item["expected_source"])
+        mrr = calculate_mrr(result["retrieved_chunks"], item["expected_source"])
+        faithfulness = judge_faithfulness(item["query"], result["answer"], result["context"])
+        correctness = judge_correctness(item["query"], result["answer"], item["expected_answer"])
+
+        if attach_scores:
+            attach_langfuse_scores(result["trace_id"], faithfulness, correctness, hit)
+
+        results.append({
+            "id": item["id"],
+            "query": item["query"],
+            "expected_answer": item["expected_answer"],
+            "expected_source": item["expected_source"],
+            "category": item.get("category", "unknown"),
+            "difficulty": item.get("difficulty", "unknown"),
+            "answer": result["answer"],
+            "trace_id": result["trace_id"],
+            "retrieved_sources": [chunk["doc_name"] for chunk in result["retrieved_chunks"]],
+            "hit": hit,
+            "mrr": mrr,
+            "faithfulness": faithfulness["score"],
+            "faithfulness_reason": faithfulness["reason"],
+            "correctness": correctness["score"],
+            "correctness_reason": correctness["reason"],
+        })
+
+    summary_scores = {
+        "num_queries": len(results),
+        "retrieval_hit_rate": round(sum(r["hit"] for r in results) / len(results) * 100, 2),
+        "avg_mrr": round(sum(r["mrr"] for r in results) / len(results), 3),
+        "avg_faithfulness": round(sum(r["faithfulness"] for r in results) / len(results) / 5 * 100, 2),
+        "avg_correctness": round(sum(r["correctness"] for r in results) / len(results) / 5 * 100, 2),
+    }
+    category_breakdown, difficulty_breakdown = run_stratified_eval(results)
+
+    print("\n" + "=" * 50)
+    print("EVALUATION SCORECARD")
+    print("=" * 50)
+    print(f"Queries evaluated:     {summary_scores['num_queries']}")
+    print(f"Hit Rate:              {summary_scores['retrieval_hit_rate']:.1f}%")
+    print(f"Mean Reciprocal Rank:  {summary_scores['avg_mrr']:.3f}")
+    print(f"Avg Faithfulness:      {summary_scores['avg_faithfulness']:.1f}%")
+    print(f"Avg Correctness:       {summary_scores['avg_correctness']:.1f}%")
+    print("=" * 50)
+
+    output = {
+        "summary": summary_scores,
+        "category_breakdown": category_breakdown,
+        "difficulty_breakdown": difficulty_breakdown,
+        "results": results,
+    }
+    output_path = os.path.join(SCRIPT_DIR, "..", "eval_results.json")
+    with open(output_path, "w") as f:
+        json.dump(output, f, indent=2, ensure_ascii=False)
+    print(f"\nResults saved to {os.path.relpath(output_path)}")
+
+    return output
 
 
 # =========================================================================
@@ -149,7 +266,38 @@ def run_stratified_eval(results):
 
     TODO: Implement in Session 2 homework.
     """
-    pass
+    def summarize(group):
+        return {
+            "total": len(group),
+            "retrieval_hit_rate": round(sum(r["hit"] for r in group) / len(group) * 100, 2),
+            "avg_mrr": round(sum(r["mrr"] for r in group) / len(group), 3),
+            "avg_faithfulness": round(sum(r["faithfulness"] for r in group) / len(group) / 5 * 100, 2),
+            "avg_correctness": round(sum(r["correctness"] for r in group) / len(group) / 5 * 100, 2),
+        }
+
+    by_category = defaultdict(list)
+    by_difficulty = defaultdict(list)
+    for result in results:
+        by_category[result["category"]].append(result)
+        by_difficulty[result["difficulty"]].append(result)
+
+    category_breakdown = {key: summarize(group) for key, group in sorted(by_category.items())}
+    difficulty_breakdown = {key: summarize(group) for key, group in sorted(by_difficulty.items())}
+
+    print("\nCATEGORY BREAKDOWN")
+    print("category | n | hit_rate | faithfulness | correctness")
+    for category, scores in category_breakdown.items():
+        print(
+            f"{category} | {scores['total']} | {scores['retrieval_hit_rate']:.1f}% | "
+            f"{scores['avg_faithfulness']:.1f}% | {scores['avg_correctness']:.1f}%"
+        )
+
+    print("\nDIFFICULTY BREAKDOWN")
+    print("difficulty | n | correctness")
+    for difficulty, scores in difficulty_breakdown.items():
+        print(f"{difficulty} | {scores['total']} | {scores['avg_correctness']:.1f}%")
+
+    return category_breakdown, difficulty_breakdown
 
 
 # =========================================================================
@@ -170,7 +318,16 @@ def attach_langfuse_scores(trace_id, faithfulness_result, correctness_result, re
 
     TODO: Implement in Session 2 homework.
     """
-    pass
+    try:
+        from langfuse import Langfuse
+
+        langfuse = Langfuse()
+        langfuse.score(trace_id=trace_id, name="faithfulness", value=faithfulness_result["score"] / 5)
+        langfuse.score(trace_id=trace_id, name="correctness", value=correctness_result["score"] / 5)
+        langfuse.score(trace_id=trace_id, name="retrieval_hit", value=1.0 if retrieval_hit else 0.0)
+        langfuse.flush()
+    except Exception as exc:
+        print(f"Skipping LangFuse score attachment: {exc}")
 
 
 # =========================================================================
@@ -187,7 +344,14 @@ def save_baseline(summary_scores, category_breakdown):
 
     TODO: Implement in Session 2 homework.
     """
-    pass
+    baseline = {
+        "summary": summary_scores,
+        "category_breakdown": category_breakdown,
+    }
+    path = os.path.join(SCRIPT_DIR, "baseline_scores.json")
+    with open(path, "w") as f:
+        json.dump(baseline, f, indent=2, ensure_ascii=False)
+    print(f"Baseline saved to {os.path.relpath(path)}")
 
 
 # =========================================================================
@@ -202,14 +366,16 @@ if __name__ == "__main__":
                         help="Save current scores as baseline_scores.json")
     parser.add_argument("--category", type=str,
                         help="Filter to a specific category (e.g. 'membership')")
+    parser.add_argument("--no-langfuse", action="store_true",
+                        help="Skip attaching eval scores to LangFuse traces")
+    parser.add_argument("--attach-langfuse", action="store_true",
+                        help="Attach eval scores to LangFuse traces")
     args = parser.parse_args()
 
-    print("Eval harness skeleton loaded.")
-    print()
-    print("Session 1 functions: check_retrieval_hit, calculate_mrr,")
-    print("                     judge_faithfulness, judge_correctness, run_eval")
-    print()
-    print("Session 2 functions: run_stratified_eval, attach_langfuse_scores, save_baseline")
-    print()
-    print("Implement Session 1 functions first, then run:")
-    print("  python scripts/eval_harness.py")
+    eval_output = run_eval(
+        include_hard=args.include_hard,
+        category=args.category,
+        attach_scores=args.attach_langfuse and not args.no_langfuse,
+    )
+    if args.save_baseline and eval_output:
+        save_baseline(eval_output["summary"], eval_output["category_breakdown"])

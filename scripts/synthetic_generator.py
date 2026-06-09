@@ -56,6 +56,7 @@ Rules:
 - Use natural customer language — NOT the exact phrasing from the document
 - Each question should be answerable from this document alone
 - Mix difficulty: some lookups, some requiring careful reading
+- Difficulty mix: if count is 3, generate 2 easy and 1 medium or hard; if count is 5, generate exactly 3 easy, 1 medium, 1 hard
 - expected_answer should be specific and include key details (numbers, dates, conditions)
 - Use category names from: returns, shipping, payments, warranty, membership, orders, products, account, rewards, promotions, sustainability, business
 
@@ -128,7 +129,25 @@ def generate_questions(doc_name: str, doc_text: str, persona: str = "standard", 
 
     TODO: Implement in Session 2.
     """
-    pass
+    prompt = PERSONA_PROMPTS[persona].format(
+        doc_name=doc_name,
+        doc_text=doc_text[:3000],
+        count=count,
+    )
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.8,
+    )
+    text = response.choices[0].message.content.strip()
+    text = text.replace("```json", "").replace("```", "").strip()
+    questions = json.loads(text)
+
+    for question in questions:
+        question["expected_source"] = doc_name
+        question["persona"] = persona
+
+    return questions
 
 
 def assign_ids(questions: list, existing_dataset: list, prefix: str = "s") -> list:
@@ -143,7 +162,17 @@ def assign_ids(questions: list, existing_dataset: list, prefix: str = "s") -> li
 
     TODO: Implement in Session 2.
     """
-    pass
+    existing_ids = {item["id"] for item in existing_dataset}
+    next_number = 1
+
+    for question in questions:
+        while f"{prefix}{next_number:03d}" in existing_ids:
+            next_number += 1
+        question["id"] = f"{prefix}{next_number:03d}"
+        existing_ids.add(question["id"])
+        next_number += 1
+
+    return questions
 
 
 def load_golden_dataset() -> list:
@@ -196,9 +225,36 @@ def main():
     parser.add_argument("--merge", action="store_true", help="Merge into golden_dataset.json")
     args = parser.parse_args()
 
-    print("Synthetic generator skeleton loaded.")
-    print("Functions to implement: generate_questions, assign_ids, critique_questions")
-    print("\nWe'll build these together in Session 2.")
+    if args.all_docs:
+        doc_paths = sorted(glob.glob(os.path.join(CORPUS_DIR, "*.md")))
+    elif args.doc:
+        doc_paths = [os.path.join(CORPUS_DIR, args.doc)]
+    else:
+        parser.error("Provide either --doc DOC_NAME or --all-docs")
+
+    for path in doc_paths:
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Corpus document not found: {path}")
+
+    existing_dataset = load_golden_dataset()
+    generated = []
+
+    for path in doc_paths:
+        doc_name = os.path.basename(path)
+        with open(path, "r") as f:
+            doc_text = f.read()
+        print(f"Generating {args.count} questions from {doc_name} ({args.persona})...")
+        generated.extend(generate_questions(doc_name, doc_text, args.persona, args.count))
+
+    generated = assign_ids(generated, existing_dataset)
+
+    if args.critique:
+        generated = critique_questions(generated)
+
+    if args.merge:
+        save_golden_dataset(existing_dataset + generated)
+    else:
+        print(json.dumps(generated, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":

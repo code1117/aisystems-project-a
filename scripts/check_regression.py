@@ -20,10 +20,6 @@ import sys
 import json
 import argparse
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 SCRIPT_DIR = os.path.dirname(__file__)
 
 DEFAULT_BASELINE = os.path.join(SCRIPT_DIR, "baseline_scores.json")
@@ -42,7 +38,11 @@ def load_baseline(path: str) -> dict:
 
     TODO: Implement in Session 2.
     """
-    pass
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Baseline file not found: {path}")
+    with open(path) as f:
+        data = json.load(f)
+    return data["summary"] if "summary" in data else data
 
 
 def load_current(path: str) -> dict:
@@ -53,7 +53,11 @@ def load_current(path: str) -> dict:
 
     TODO: Implement in Session 2.
     """
-    pass
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Current eval file not found: {path}")
+    with open(path) as f:
+        data = json.load(f)
+    return data["summary"] if "summary" in data else data
 
 
 def check_regression(current: dict, baseline: dict, threshold: float = DEFAULT_THRESHOLD) -> list:
@@ -72,7 +76,22 @@ def check_regression(current: dict, baseline: dict, threshold: float = DEFAULT_T
 
     TODO: Implement in Session 2.
     """
-    pass
+    metrics = ["retrieval_hit_rate", "avg_faithfulness", "avg_correctness"]
+    regressions = []
+
+    for metric in metrics:
+        if metric not in baseline or metric not in current:
+            raise KeyError(f"Missing metric '{metric}' in baseline or current scores")
+        delta = current[metric] - baseline[metric]
+        regressions.append({
+            "metric": metric,
+            "baseline": baseline[metric],
+            "current": current[metric],
+            "delta": round(delta, 2),
+            "is_regression": delta < -threshold,
+        })
+
+    return regressions
 
 
 def display_results(regressions: list, threshold: float):
@@ -83,7 +102,22 @@ def display_results(regressions: list, threshold: float):
 
     TODO: Implement in Session 2.
     """
-    pass
+    has_regression = any(result["is_regression"] for result in regressions)
+    print("\nREGRESSION CHECK")
+    print(f"Threshold: {threshold:.1f} percentage points")
+    print("metric | baseline | current | delta | status")
+
+    for result in regressions:
+        status = "REGRESSION" if result["is_regression"] else "PASS"
+        print(
+            f"{result['metric']} | {result['baseline']:.2f} | "
+            f"{result['current']:.2f} | {result['delta']:+.2f} | {status}"
+        )
+
+    if has_regression:
+        print("\nREGRESSION DETECTED")
+    else:
+        print("\nNO REGRESSION")
 
 
 # =========================================================================
@@ -98,9 +132,13 @@ def main():
                         help="Regression threshold in percentage points (default: 5.0)")
     args = parser.parse_args()
 
-    print("Regression checker skeleton loaded.")
-    print("Functions to implement: load_baseline, load_current, check_regression, display_results")
-    print("\nWe'll build these together in Session 2.")
+    baseline = load_baseline(args.baseline)
+    current = load_current(args.current)
+    regressions = check_regression(current, baseline, args.threshold)
+    display_results(regressions, args.threshold)
+
+    if any(result["is_regression"] for result in regressions):
+        sys.exit(1)
 
 
 if __name__ == "__main__":

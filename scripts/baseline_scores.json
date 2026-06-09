@@ -1,0 +1,109 @@
+{
+  "summary": {
+    "num_queries": 62,
+    "retrieval_hit_rate": 100.0,
+    "avg_mrr": 0.874,
+    "avg_faithfulness": 100.0,
+    "avg_correctness": 89.03
+  },
+  "category_breakdown": {
+    "account": {
+      "total": 4,
+      "retrieval_hit_rate": 100.0,
+      "avg_mrr": 1.0,
+      "avg_faithfulness": 100.0,
+      "avg_correctness": 100.0
+    },
+    "membership": {
+      "total": 4,
+      "retrieval_hit_rate": 100.0,
+      "avg_mrr": 0.625,
+      "avg_faithfulness": 100.0,
+      "avg_correctness": 80.0
+    },
+    "orders": {
+      "total": 4,
+      "retrieval_hit_rate": 100.0,
+      "avg_mrr": 0.833,
+      "avg_faithfulness": 100.0,
+      "avg_correctness": 100.0
+    },
+    "payments": {
+      "total": 7,
+      "retrieval_hit_rate": 100.0,
+      "avg_mrr": 0.833,
+      "avg_faithfulness": 100.0,
+      "avg_correctness": 82.86
+    },
+    "products": {
+      "total": 8,
+      "retrieval_hit_rate": 100.0,
+      "avg_mrr": 0.823,
+      "avg_faithfulness": 100.0,
+      "avg_correctness": 80.0
+    },
+    "promotions": {
+      "total": 1,
+      "retrieval_hit_rate": 100.0,
+      "avg_mrr": 1.0,
+      "avg_faithfulness": 100.0,
+      "avg_correctness": 100.0
+    },
+    "returns": {
+      "total": 15,
+      "retrieval_hit_rate": 100.0,
+      "avg_mrr": 0.872,
+      "avg_faithfulness": 100.0,
+      "avg_correctness": 92.0
+    },
+    "rewards": {
+      "total": 1,
+      "retrieval_hit_rate": 100.0,
+      "avg_mrr": 1.0,
+      "avg_faithfulness": 100.0,
+      "avg_correctness": 60.0
+    },
+    "setup": {
+      "total": 1,
+      "retrieval_hit_rate": 100.0,
+      "avg_mrr": 1.0,
+      "avg_faithfulness": 100.0,
+      "avg_correctness": 100.0
+    },
+    "shipping": {
+      "total": 5,
+      "retrieval_hit_rate": 100.0,
+      "avg_mrr": 1.0,
+      "avg_faithfulness": 100.0,
+      "avg_correctness": 76.0
+    },
+    "support": {
+      "total": 2,
+      "retrieval_hit_rate": 100.0,
+      "avg_mrr": 1.0,
+      "avg_faithfulness": 100.0,
+      "avg_correctness": 100.0
+    },
+    "sustainability": {
+      "total": 3,
+      "retrieval_hit_rate": 100.0,
+      "avg_mrr": 1.0,
+      "avg_faithfulness": 100.0,
+      "avg_correctness": 86.67
+    },
+    "terms and conditions": {
+      "total": 1,
+      "retrieval_hit_rate": 100.0,
+      "avg_mrr": 1.0,
+      "avg_faithfulness": 100.0,
+      "avg_correctness": 100.0
+    },
+    "warranty": {
+      "total": 6,
+      "retrieval_hit_rate": 100.0,
+      "avg_mrr": 0.806,
+      "avg_faithfulness": 100.0,
+      "avg_correctness": 100.0
+    }
+  }
+}
